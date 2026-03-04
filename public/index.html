@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TODO</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="container">
+        <h1>TODO</h1>
+
+        <div class="inputRow">
+            <input type="text" id="taskInput" maxlength="250" placeholder="Введите задачу">
+            <button id="addTaskButton">Добавить</button>
+        </div>
+
+        <div class="actionsRow">
+            <label class="selectAllLabel">
+                <input type="checkbox" id="selectAllCheckbox">
+                Выбрать все
+            </label>
+            <button id="deleteCompletedButton">Удалить выполненные</button>
+        </div>
+
+        <div class="tabs" id="tabs">
+            <button class="tabButton activeTab" data-filter="all">Все (<span id="countAll">0</span>)</button>
+            <button class="tabButton" data-filter="active">Активные (<span id="countActive">0</span>)</button>
+            <button class="tabButton" data-filter="completed">Завершенные (<span id="countCompleted">0</span>)</button>
+        </div>
+
+        <ul id="taskList"></ul>
+
+        <div id="pagination"></div>
+    </main>
+</body>
+<script src="script.js"></script>
+</html>
