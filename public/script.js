@@ -25,9 +25,9 @@ async function refreshCounters() {
     const activeData = await activeResponse.json();
     const completedData = await completedResponse.json();
 
-    countAll.innerHTML = allData.count;
-    countActive.innerHTML = activeData.count;
-    countCompleted.innerHTML = completedData.count;
+    countAll.textContent = allData.count;
+    countActive.textContent = activeData.count;
+    countCompleted.textContent = completedData.count;
 }
 
 // Загрузка задач и их подсчет
@@ -43,13 +43,13 @@ async function loadTasks() {
 
 // Построение пагинации
 function renderPagination() {
-    pagination.innerHTML = "";
+    pagination.textContent = "";
     const totalPages = Math.ceil(totalCountForCurrentFilter / pageLimit);
 
     for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
         const pageButton = document.createElement("button");
         pageButton.className = "pageButton" + (pageNumber === currentPage ? " activePage" : "");
-        pageButton.innerHTML = pageNumber;
+        pageButton.textContent = pageNumber;
         pageButton.onclick = async () => {
             currentPage = pageNumber;
             await refreshScreen();
@@ -72,7 +72,7 @@ async function updateSelectAllState() {
 
 // Рендеринг задач
 function renderTasks() {
-    taskList.innerHTML = "";
+    taskList.textContent = "";
 
     visibleTasks.forEach((taskItem) => {
         const listItem = document.createElement("li");
@@ -135,7 +135,7 @@ function renderTasks() {
 
         const deleteButton = document.createElement("button");
         deleteButton.className = "deleteTaskButton";
-        deleteButton.innerHTML = "Удалить";
+        deleteButton.textContent = "Удалить";
         deleteButton.onclick = async () => {
             await fetch("/tasks/" + taskItem.id, { method: "DELETE" });
             const maxPage = Math.max(1, Math.ceil((totalCountForCurrentFilter - 1) / pageLimit));

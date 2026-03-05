@@ -2,6 +2,16 @@ const express = require("express");
 const router = express.Router();
 const db = require("./db");
 
+function escapeHTML(str) {
+  if (!str) return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 // Получение количества задач
 router.get("/tasks/count", (req, res) => {
   const filter = req.query.filter || "all";
@@ -24,8 +34,8 @@ router.get("/tasks/count", (req, res) => {
 
 router.get("/tasks", (req, res) => {
   const filter = req.query.filter || "all";
-  const page = req.query.page || 1;
-  const limit = req.query.limit || 5;
+  const pageNum = parseInt(req.query.page) || 1;
+  const limitNum = parseInt(req.query.limit) || 5;
 
   let sql = "SELECT * FROM tasks";
 
@@ -35,10 +45,10 @@ router.get("/tasks", (req, res) => {
     sql = sql + " WHERE completed = 1";
   }
 
-  const offset = (parseInt(page) - 1) * parseInt(limit);
-  sql = sql + " ORDER BY id DESC LIMIT " + limit + " OFFSET " + offset;
+  const offset = (pageNum - 1) * limitNum;
+  sql = sql + " ORDER BY id DESC LIMIT ? OFFSET ?";
 
-  db.all(sql, (err, rows) => {
+  db.all(sql, [limitNum, offset], (err, rows) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -64,13 +74,21 @@ router.get("/tasks", (req, res) => {
 
 router.post("/tasks", (req, res) => {
   const requestBody = req.body || {};
-  const text = requestBody.text;
+  const text = escapeHTML(requestBody.text);
   const completed = requestBody.completed ? 1 : 0;
   const rawBody = JSON.stringify(requestBody);
 
-  const sql = "INSERT INTO tasks (text, completed, raw_body) VALUES ('" + text + "', " + completed + ", '" + rawBody + "')";
+  if (!text) {
+    return res.status(400).json({ error: "Text is required" });
+  }
 
-  db.run(sql, function (err) {
+  if (text.length > 200) {
+    return res.status(400).json({ error: "Text too long" });
+  }
+
+  const sql = "INSERT INTO tasks (text, completed, raw_body) VALUES (?, ?, ?)";
+
+  db.run(sql, [text, completed, rawBody], function (err) {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -85,9 +103,8 @@ router.post("/tasks", (req, res) => {
 
 router.patch("/tasks/select-all", (req, res) => {
   const completed = req.body.completed ? 1 : 0;
-  const sql = "UPDATE tasks SET completed = " + completed;
-
-  db.run(sql, function (err) {
+  const sql = "UPDATE tasks SET completed = ?";
+  db.run(sql, [completed], function (err) {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -113,9 +130,9 @@ router.patch("/tasks/:id", (req, res) => {
   const id = req.params.id;
   const requestBody = req.body || {};
 
-  const selectSql = "SELECT * FROM tasks WHERE id = " + id;
+  const selectSql = "SELECT * FROM tasks WHERE id = ?";
 
-  db.get(selectSql, (err, task) => {
+  db.get(selectSql, [id], (err, task) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -133,14 +150,15 @@ router.patch("/tasks/:id", (req, res) => {
     }
 
     const mergedRawBody = { ...previousRawBody, ...requestBody };
-    const updatedText = requestBody.text !== undefined ? requestBody.text : task.text;
+    const updatedText = requestBody.text !== undefined ? escapeHTML(requestBody.text) : task.text;
     const updatedCompleted = requestBody.completed !== undefined ? (requestBody.completed ? 1 : 0) : task.completed;
 
-    let updateSql = "UPDATE tasks SET text = '" + updatedText + "', completed = " + updatedCompleted + ", raw_body = '" + JSON.stringify(mergedRawBody) + "'";
+    if (updatedText.length > 200) {
+      return res.status(400).json({ error: "Text too long" });
+    }
 
-    updateSql = updateSql + " WHERE id = " + id;
-
-    db.run(updateSql, function (updateError) {
+    const updateSql = "UPDATE tasks SET text = ?, completed = ?, raw_body = ? WHERE id = ?";
+    db.run(updateSql, [updatedText, updatedCompleted, JSON.stringify(mergedRawBody), id], function (updateError) {
       if (updateError) {
         return res.status(500).json({ error: updateError.message });
       }
@@ -156,9 +174,9 @@ router.patch("/tasks/:id", (req, res) => {
 
 router.delete("/tasks/:id", (req, res) => {
   const id = req.params.id;
-  const sql = "DELETE FROM tasks WHERE id = " + id;
+  const sql = "DELETE FROM tasks WHERE id = ?";
 
-  db.run(sql, function (err) {
+  db.run(sql, [id], function (err) {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
